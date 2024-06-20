@@ -31,6 +31,7 @@ pub struct BootrConfig {
 }
 
 /// Read bootr config
+#[allow(dead_code)]
 pub fn get_bootr_config(pth: Option<PathBuf>) -> Result<BootrConfig, Error> {
     let p: PathBuf;
     if pth.is_some() {
