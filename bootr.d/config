@@ -1,0 +1,19 @@
+# OCI registry-related scope
+oci-registry:
+  # Source image to update from
+  image: registry.suse.com/bci/bci-busybox:15.6
+
+  # Optional login. If omitted, then anonymous
+  login:
+    user: kevin
+    password: the8minion
+
+
+# System-related scope
+system:
+  autoupdate: yes
+
+  # Update currently is just an old-school poller.
+  # But it should be all event-based, before 1.0 version
+  # and the poller should be removed permanently.
+  check: 5m

@@ -1,0 +1,44 @@
+created: 2024-06-12T11:05:13Z
+author: SUSE LLC (https://www.suse.com/)
+architecture: amd64
+os: linux
+config:
+  Cmd:
+  - /bin/sh
+  Labels:
+    com.suse.bci.busybox.created: 2024-06-12T11:05:08.157216473Z
+    com.suse.bci.busybox.description: 15 SP6 BusyBox container based on the SLE Base Container Image.
+    com.suse.bci.busybox.disturl: obs://build.suse.de/SUSE:SLE-15-SP6:Update:CR/images/ff96b3dc6e513976a471fc992e662050-busybox-image
+    com.suse.bci.busybox.eula: sle-bci
+    com.suse.bci.busybox.lifecycle-url: https://www.suse.com/lifecycle#suse-linux-enterprise-server-15
+    com.suse.bci.busybox.reference: registry.suse.com/bci/bci-busybox:15.6.18.1
+    com.suse.bci.busybox.release-stage: released
+    com.suse.bci.busybox.source: https://sources.suse.com/SUSE:SLE-15-SP6:Update:CR/busybox-image/ff96b3dc6e513976a471fc992e662050/
+    com.suse.bci.busybox.supportlevel: l3
+    com.suse.bci.busybox.title: SLE BCI 15 SP6 BusyBox
+    com.suse.bci.busybox.url: https://www.suse.com/products/base-container-images/
+    com.suse.bci.busybox.vendor: SUSE LLC
+    com.suse.bci.busybox.version: 15.6.18.1
+    com.suse.eula: sle-bci
+    com.suse.lifecycle-url: https://www.suse.com/lifecycle#suse-linux-enterprise-server-15
+    com.suse.release-stage: released
+    com.suse.supportlevel: l3
+    io.artifacthub.package.logo-url: https://opensource.suse.com/bci/SLE_BCI_logomark_green.svg
+    io.artifacthub.package.readme-url: https://sources.suse.com/SUSE:SLE-15-SP6:Update:CR/busybox-image/ff96b3dc6e513976a471fc992e662050//README.md
+    org.openbuildservice.disturl: obs://build.suse.de/SUSE:SLE-15-SP6:Update:CR/images/ff96b3dc6e513976a471fc992e662050-busybox-image
+    org.opencontainers.image.created: 2024-06-12T11:05:08.157216473Z
+    org.opencontainers.image.description: 15 SP6 BusyBox container based on the SLE Base Container Image.
+    org.opencontainers.image.source: https://sources.suse.com/SUSE:SLE-15-SP6:Update:CR/busybox-image/ff96b3dc6e513976a471fc992e662050/
+    org.opencontainers.image.title: SLE BCI 15 SP6 BusyBox
+    org.opencontainers.image.url: https://www.suse.com/products/base-container-images/
+    org.opencontainers.image.vendor: SUSE LLC
+    org.opencontainers.image.version: 15.6.18.1
+    org.opensuse.reference: registry.suse.com/bci/bci-busybox:15.6.18.1
+rootfs:
+  type: layers
+  diff_ids:
+  - sha256:dedfced8456b686617687eb843c63998803828302b354de4254a4d2eb5dae07c
+history:
+- created: 2024-06-12T11:05:13Z
+  created_by: KIWI 9.24.43
+  author: SUSE LLC <https://www.suse.com/
