@@ -23,17 +23,22 @@ oci-registry:
     password: the8minion
 
 # Automated system update
-update:
+system:
   # Perform auto-update or not
   # Default: true
-  auto: true | false
+  autoupdate: true | false
 
   # Type of update check: polling or event-based (in a distant future)
   # Default: poll
   type: poll | event
 
   # Polls every x minutes or hours
-  # Default:
+  # Default: 1h
+  #
+  # NOTE: Updates currently are done via just an old-school poller.
+  # But it should be all event-based, before 1.0 version
+  # and the poller should be removed permanently.
+
   check: 0m|0h
 ```
 
@@ -41,14 +46,18 @@ update:
 
 This is the updates storage directory. It contains the updates,
 delivered by OCI means and are used for the next boot. The
-directory contains subdirectories such as `/a`, `/b` etc (can be
-configured on demand) to have variants of the system.
+directory contains subdirectories, named after last hash.
+
+Currently running system is designated by a symlink `current`,
+like so:
+
+`/bootr/system/current -> /bootr/system/(SHA256 digest here)`
 
 Each of those subdirectory has own tracking of OCI layers in the
-following format, e.g. `/a`:
+following format:
 
 ```
-/bootr/system/a
+/bootr/system/[sha256 here]
               |
               +-- layers/
 			        +-- rootfs/
@@ -59,7 +68,7 @@ The `layers` is a directory, which contains empty files with named
 after layer files (SHA checksum), so Bootr will not re-download and
 process them again.
 
-The `rootfs` is a directory, which contains updated rootfs.
+The `rootfs` is a symlink to the main root filesystem.
 
 The `status` is a YAML file, which has `key: value` format.
 It contains the information about the rootfs and its status, such as:
