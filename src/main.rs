@@ -1,6 +1,8 @@
-use std::{env, io::Error};
 mod cli;
-mod ocidata;
+mod ociman;
+
+use ociman::ocidata;
+use std::{env, io::Error};
 
 static VERSION: &str = "0.0.1";
 static APPNAME: &str = "bootr";
