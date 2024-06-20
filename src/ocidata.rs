@@ -21,6 +21,7 @@ pub struct OciClient {
 /// NOTE: it only pulls them, but the placement meant to be handled elsewhere.
 ///
 /// TODO: Add custom writables. Currently only vector in memory.
+#[allow(dead_code)]
 impl OciClient {
     pub fn new(auth: Option<RegistryAuth>) -> Self {
         OciClient {
