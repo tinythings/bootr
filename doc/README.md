@@ -8,26 +8,33 @@ Root directory contains `/bootr` direcory, which has all the required
 data to update the rest of the system. Bootr _does not_ use `/etc`
 directory which might be even read-only, after all.
 
-`/bootr/bootr.conf`: main configuration of Bootr.
+`/bootr/config`: main configuration of Bootr.
 
 ## Configuration File
 
 ```yaml
+# Source image to update from
+oci-registry:
+  image: registry.suse.com/bci/bci-busybox:15.6
+
+  # Optional login. If omitted, then anonymous
+  login:
+    user: kevin
+    password: the8minion
+
 # Automated system update
 update:
   # Perform auto-update or not
+  # Default: true
   auto: true | false
-  
-  # Type of update check: polling or event-based (in a distant future)
-  type: poll | event
-  
-  # Polls every x minutes or hours
-  check: 0m|0h
 
-# Round-robin versions (default a/b)
-versions:
-  - a
-  - b
+  # Type of update check: polling or event-based (in a distant future)
+  # Default: poll
+  type: poll | event
+
+  # Polls every x minutes or hours
+  # Default:
+  check: 0m|0h
 ```
 
 ## `/bootr/system/`
@@ -44,8 +51,8 @@ following format, e.g. `/a`:
 /bootr/system/a
               |
               +-- layers/
-			  +-- rootfs/
-			  +-- status.yaml
+			        +-- rootfs/
+			        +-- status
 ```
 
 The `layers` is a directory, which contains empty files with named
@@ -54,10 +61,9 @@ process them again.
 
 The `rootfs` is a directory, which contains updated rootfs.
 
-The `status.yaml` is a YAML file, which has `key: value` format.
+The `status` is a YAML file, which has `key: value` format.
 It contains the information about the rootfs and its status, such as:
 - when it was last updated
 - is it currently running rootfs or not
 - last checksum
 - which OCI container, vendor, author, packager, publisher etc
-
