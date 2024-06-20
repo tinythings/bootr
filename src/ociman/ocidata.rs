@@ -57,7 +57,7 @@ impl OciClient {
         }
 
         let (manifest, digest, cfg) = mdcr.unwrap();
-        println!("Config:\n{}", cfg);
+        println!("Configuration:\n{}", cfg);
 
         // Check media types, if needed
         if !self.mtypes.is_empty() {
