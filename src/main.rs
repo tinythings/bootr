@@ -1,5 +1,6 @@
 mod bconf;
 mod cli;
+mod logger;
 mod ociman;
 
 use bconf::mcfg;
@@ -9,11 +10,14 @@ use std::{env, io::Error, path::PathBuf};
 
 static VERSION: &str = "0.0.1";
 static APPNAME: &str = "bootr";
+static LOGGER: logger::STDOUTLogger = logger::STDOUTLogger;
 
 // Get OCI manager, lazily on demand
 fn get_oci_manager(p: &ArgMatches) -> Result<Option<OCISysMgr>, Error> {
     for sub in ["update", "install"] {
         if p.subcommand_matches(sub).is_some() {
+            log::debug!("Starting OCI manager");
+
             // There is a reason to init a manager, so the config is read too.
             return Ok(Some(OCISysMgr::new(mcfg::get_bootr_config(Some(PathBuf::from(
                 p.get_one::<String>("config").unwrap(),
@@ -37,12 +41,19 @@ async fn run() -> Result<(), Error> {
     }
 
     let p = cliarg.get_matches();
+
+    // Setup logger
+    let debug = true; // later...
+    log::set_logger(&LOGGER)
+        .map(|()| log::set_max_level(if debug { log::LevelFilter::Trace } else { log::LevelFilter::Info }))
+        .unwrap();
+
     let oci_mgr = get_oci_manager(&p)?;
     let oci_cnt = ocidata::OciClient::new(None);
 
     if let Some(subarg) = p.subcommand_matches("install") {
         // System installation
-        println!("Installing the system");
+        log::info!("Installing system");
         let oci_mgr = oci_mgr.unwrap();
     } else if let Some(subarg) = p.subcommand_matches("update") {
         // System Update
@@ -69,7 +80,9 @@ async fn run() -> Result<(), Error> {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     match run().await {
-        Err(err) => println!("Error: {}", err),
+        Err(err) => {
+            log::error!("{}", err);
+        }
         _ => (),
     }
 
