@@ -28,6 +28,10 @@ pub fn clidef(version: &'static str, appname: &'static str) -> Command {
                 .default_value("info")
                 .value_parser(["quiet", "info", "verbose"]),
         )
+        .subcommand(Command::new("install").about(
+            "Install a specified OCI image onto current rootfs, \
+            replacing current content with the OCI image data",
+        ))
         .subcommand(
             Command::new("update")
                 .about("Update the system from available OCI images")
