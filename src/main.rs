@@ -3,13 +3,13 @@ mod cli;
 mod ociman;
 
 use ociman::ocidata;
-use std::{env, io::Error};
+use std::{env, io::Error, path::PathBuf};
 
 static VERSION: &str = "0.0.1";
 static APPNAME: &str = "bootr";
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+/// Wrapper to handle all the errors in main() :-)
+async fn run() -> Result<(), Error> {
     let args: Vec<String> = env::args().collect();
     let mut cliarg = cli::clidef(VERSION, APPNAME);
 
@@ -24,6 +24,9 @@ async fn main() -> Result<(), Error> {
 
     // System Update
     if let Some(subarg) = p.subcommand_matches("update") {
+        // Get config
+        bconf::mcfg::get_bootr_config(Some(PathBuf::from(p.get_one::<String>("config").unwrap())))?;
+
         let c = ocidata::OciClient::new(None);
         println!("updating the system");
         if subarg.get_flag("check") {
@@ -40,6 +43,15 @@ async fn main() -> Result<(), Error> {
                 Err(x) => println!("Error: {}", x),
             }
         }
+    }
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    match run().await {
+        Err(err) => println!("Error: {}", err),
+        _ => (),
     }
 
     Ok(())
