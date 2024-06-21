@@ -11,7 +11,7 @@ oci-registry:
 
 # System-related scope
 system:
-  autoupdate: yes
+  autoupdate: true
 
   # Update currently is just an old-school poller.
   # But it should be all event-based, before 1.0 version
