@@ -5,6 +5,7 @@ mod ociman;
 
 use bconf::mcfg;
 use clap::ArgMatches;
+use log::LevelFilter;
 use ociman::{ocidata, ocisys::OCISysMgr};
 use std::{env, io::Error, path::PathBuf};
 
@@ -43,9 +44,15 @@ async fn run() -> Result<(), Error> {
     let p = cliarg.get_matches();
 
     // Setup logger
-    let debug = true; // later...
     log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(if debug { log::LevelFilter::Trace } else { log::LevelFilter::Info }))
+        .map(|()| {
+            log::set_max_level(match p.get_one::<String>("log").unwrap().as_str() {
+                "info" => log::LevelFilter::Info,
+                "verbose" => log::LevelFilter::Trace,
+                "quiet" => log::LevelFilter::Off,
+                _ => log::LevelFilter::Error,
+            })
+        })
         .unwrap();
 
     let oci_mgr = get_oci_manager(&p)?;
@@ -58,7 +65,7 @@ async fn run() -> Result<(), Error> {
     } else if let Some(subarg) = p.subcommand_matches("update") {
         // System Update
         let oci_mgr = oci_mgr.unwrap();
-        println!("updating the system");
+        log::info!("Updating the system");
         if subarg.get_flag("check") {
             todo!("Check for available updates is not implemented yet");
         } else {
