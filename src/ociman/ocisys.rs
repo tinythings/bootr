@@ -93,12 +93,14 @@ impl OCISysMgr {
         for s in [defaults::C_BOOTR_SYSDIR.as_str(), defaults::C_BOOTR_SECT_A.as_str(), defaults::C_BOOTR_SECT_B.as_str()] {
             let p = PathBuf::from(s);
             if !p.exists() {
+                log::debug!("Seems system is uninitialised. Creating all directory structure.");
                 fs::create_dir_all(p)?;
             }
         }
 
         // Load sysroots
         for p in [defaults::C_BOOTR_SECT_A.as_str(), defaults::C_BOOTR_SECT_B.as_str()] {
+            log::debug!("Loading sysroot at {}", p);
             self.load_sysroot(PathBuf::from(p))?;
         }
 
