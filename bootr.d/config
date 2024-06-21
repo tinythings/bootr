@@ -17,3 +17,9 @@ system:
   # But it should be all event-based, before 1.0 version
   # and the poller should be removed permanently.
   check: 5m
+
+  # Skip the following directories from processing
+  # NOTE: /proc, /dev, /sys and /run are *always* untouched!
+  skip-directories:
+    - /boot
+    - /lib/modules
