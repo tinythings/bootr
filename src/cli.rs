@@ -1,5 +1,7 @@
 use clap::{builder::styling, Arg, Command};
 
+use crate::bconf::defaults;
+
 /// CLI definition
 pub fn clidef(version: &'static str, appname: &'static str) -> Command {
     let styles = styling::Styles::styled()
@@ -11,7 +13,13 @@ pub fn clidef(version: &'static str, appname: &'static str) -> Command {
     Command::new(appname)
         .version(version)
         .about(format!("{} - transactional, in-place system updates using OCI containers paradigm", appname))
-        .arg(Arg::new("config").short('c').long("config").help("Specify the configuration").default_value("/bootr/bootr.conf"))
+        .arg(
+            Arg::new("config")
+                .short('c')
+                .long("config")
+                .help("Specify the configuration")
+                .default_value(defaults::C_BOOTR_CFG.to_string()),
+        )
         .arg(
             Arg::new("log")
                 .short('l')
