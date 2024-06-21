@@ -12,7 +12,7 @@ use std::{fs::File, path::PathBuf};
 /// when running a container using the image. This field can
 /// be null, in which case any execution parameters should
 /// be specified at creation of the container.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StatusConfigCfg {
     /// Default arguments to the entrypoint of the container.
     pub cmd: Option<String>,
@@ -23,7 +23,7 @@ pub struct StatusConfigCfg {
 
 /// The rootfs key references the layer content addresses used by the image.
 /// This makes the image config hash depend on the filesystem hash.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct StatusConfigRootfs {
     #[serde(rename = "type")]
     /// Type of the rootfs, currently always set to "layers"
@@ -34,7 +34,7 @@ pub struct StatusConfigRootfs {
 }
 
 /// Describes the history of each layer. The array is ordered from first to last.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StatusConfigHistory {
     /// A combined date and time at which the layer was created, formatted
     /// as defined by RFC 3339, section 5.6.
@@ -62,7 +62,7 @@ pub struct StatusConfigHistory {
 /// DISCLAIMER: This struct only partial at the moment and
 ///             does not implements all the properties,
 ///             described in the specification, at least for now.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct StatusConfig {
     /// Combined date and time at which the image was created,
     /// formatted as defined by RFC 3339, section 5.6.
