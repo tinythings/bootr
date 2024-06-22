@@ -5,7 +5,6 @@ mod ociman;
 
 use bconf::mcfg;
 use clap::ArgMatches;
-use log::LevelFilter;
 use ociman::{ocidata, ocisys::OCISysMgr};
 use std::{env, io::Error, path::PathBuf};
 
@@ -71,7 +70,7 @@ async fn run() -> Result<(), Error> {
         } else {
             match oci_cnt.pull("registry.suse.com/bci/bci-busybox:15.6").await {
                 Ok(img) => {
-                    println!("Manifest: {}", img.manifest.unwrap().to_string());
+                    println!("Manifest: {}", img.manifest.unwrap());
                     println!("{} layers found:", &img.layers.len());
                     for layer in &img.layers {
                         println!("   Type: {}, size: {}", layer.media_type, layer.data.len());
@@ -86,11 +85,8 @@ async fn run() -> Result<(), Error> {
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    match run().await {
-        Err(err) => {
-            log::error!("{}", err);
-        }
-        _ => (),
+    if let Err(err) = run().await {
+        log::error!("{}", err);
     }
 
     Ok(())
