@@ -31,15 +31,11 @@ pub struct BootrConfig {
 }
 
 /// Read bootr config
-#[allow(dead_code)]
+#[allow(dead_code, clippy::unnecessary_unwrap)]
 pub fn get_bootr_config(pth: Option<PathBuf>) -> Result<BootrConfig, Error> {
-    let p: PathBuf;
-    if pth.is_some() {
-        p = pth.unwrap();
-    } else {
-        p = PathBuf::from(defaults::C_BOOTR_CFG.to_string());
-    }
+    log::debug!("Loading main Bootr config from {:?}", pth);
 
+    let p: PathBuf = if pth.is_some() { pth.unwrap() } else { PathBuf::from(defaults::C_BOOTR_CFG.to_string()) };
     if !p.exists() {
         return Err(Error::new(ErrorKind::NotFound, format!("Configuration file at {} is missing", p.to_str().unwrap())));
     }
