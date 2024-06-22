@@ -14,17 +14,17 @@ lazy_static! {
     /// The symlink should be always present. Symlink might be absent if the system is not yet provisioned,
     /// but if both sections are present and symlink is absent (removed accidentally etc), the latest
     /// section is chosen as current. Section is chosen by MTIME of status file
-    pub static ref C_BOOTR_CURRENT_LNK: String = format!("{}{}", C_BOOTR_SYSDIR.to_string(), "/current");
+    pub static ref C_BOOTR_CURRENT_LNK: String = format!("{}{}", *C_BOOTR_SYSDIR, "/current");
 
     /// Temporary symlink for atomic flip
-    pub static ref C_BOOTR_CURRENT_LNK_TMP: String = format!("{}{}", C_BOOTR_SYSDIR.to_string(), "/current.temp");
+    pub static ref C_BOOTR_CURRENT_LNK_TMP: String = format!("{}{}", *C_BOOTR_SYSDIR, "/current.temp");
 
     /// The "A" section among A/B sections
-    pub static ref C_BOOTR_SECT_A: String = format!("{}{}", C_BOOTR_SYSDIR.to_string(), "/A");
+    pub static ref C_BOOTR_SECT_A: String = format!("{}{}", *C_BOOTR_SYSDIR, "/A");
 
     /// The "B" section among A/B sections
-    pub static ref C_BOOTR_SECT_B: String = format!("{}{}", C_BOOTR_SYSDIR.to_string(), "/B");
+    pub static ref C_BOOTR_SECT_B: String = format!("{}{}", *C_BOOTR_SYSDIR, "/B");
 
     /// The ".temp" section among A/B sections
-    pub static ref C_BOOTR_SECT_TMP: String = format!("{}{}", C_BOOTR_SYSDIR.to_string(), "/.temp");
+    pub static ref C_BOOTR_SECT_TMP: String = format!("{}{}", *C_BOOTR_SYSDIR, "/.temp");
 }
