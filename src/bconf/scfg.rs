@@ -101,7 +101,7 @@ impl StatusConfig {
     /// Get combined date and time as DateTime object, if specified.
     pub fn created(&self) -> Option<DateTime<FixedOffset>> {
         if let Some(created) = &self.created {
-            return Some(DateTime::parse_from_str(&created, "%Y-%m-%dT%H:%M:%SZ").unwrap());
+            return Some(DateTime::parse_from_str(created, "%Y-%m-%dT%H:%M:%SZ").unwrap());
         }
         None
     }
