@@ -108,7 +108,9 @@ impl StatusConfig {
 }
 
 /// Read status configuration from the given path.
-pub async fn get_status_config(pth: PathBuf) -> Result<StatusConfig, Error> {
+pub fn get_status_config(pth: PathBuf) -> Result<StatusConfig, Error> {
+    log::debug!("Getting status config from {:?}", pth);
+
     if !pth.exists() {
         return Err(Error::new(ErrorKind::NotFound, format!("Configuration file at {} is missing", pth.to_str().unwrap())));
     }
@@ -120,7 +122,9 @@ pub async fn get_status_config(pth: PathBuf) -> Result<StatusConfig, Error> {
 }
 
 /// Writes OCI config to a file
-pub async fn ociconf_to_file(cfg: Vec<u8>, pth: PathBuf) -> Result<(), Errno> {
+pub fn ociconf_to_file(cfg: Vec<u8>, pth: PathBuf) -> Result<(), Errno> {
+    log::debug!("Writing OCI config to a file at {:?}", pth);
+
     if !pth.parent().unwrap().exists() {
         return Err(Errno::ENOENT);
     }
