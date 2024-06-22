@@ -32,15 +32,13 @@ pub struct BootrConfig {
 
 /// Read bootr config
 #[allow(dead_code, clippy::unnecessary_unwrap)]
-pub fn get_bootr_config(pth: Option<PathBuf>) -> Result<BootrConfig, Error> {
+pub fn get_bootr_config(pth: PathBuf) -> Result<BootrConfig, Error> {
     log::debug!("Loading main Bootr config from {:?}", pth);
-
-    let p: PathBuf = if pth.is_some() { pth.unwrap() } else { PathBuf::from(defaults::C_BOOTR_CFG.to_string()) };
-    if !p.exists() {
-        return Err(Error::new(ErrorKind::NotFound, format!("Configuration file at {} is missing", p.to_str().unwrap())));
+    if !pth.exists() {
+        return Err(Error::new(ErrorKind::NotFound, format!("Configuration file at {} is missing", pth.to_str().unwrap())));
     }
 
-    match serde_yaml::from_reader::<BufReader<std::fs::File>, BootrConfig>(BufReader::new(File::open(p)?)) {
+    match serde_yaml::from_reader::<BufReader<std::fs::File>, BootrConfig>(BufReader::new(File::open(pth)?)) {
         Ok(cfg) => Ok(cfg),
         Err(err) => Err(Error::new(std::io::ErrorKind::InvalidData, err)),
     }
