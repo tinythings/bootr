@@ -21,7 +21,7 @@ pub struct OciClient {
 /// NOTE: it only pulls them, but the placement meant to be handled elsewhere.
 ///
 /// TODO: Add custom writables. Currently only vector in memory.
-#[allow(dead_code)]
+#[allow(dead_code, clippy::unnecessary_unwrap)]
 impl OciClient {
     pub fn new(auth: Option<RegistryAuth>) -> Self {
         OciClient {
@@ -57,13 +57,12 @@ impl OciClient {
         }
 
         let (manifest, digest, cfg) = mdcr.unwrap();
-        println!("Configuration:\n{}", cfg);
 
         // Check media types, if needed
         if !self.mtypes.is_empty() {
             for layer in &manifest.layers {
                 if !self.mtypes.contains(&layer.media_type) {
-                    println!("Wrong media type: {}", &layer.media_type);
+                    log::debug!("Wrong media type found: {}", &layer.media_type);
                     return Err(nix::errno::Errno::EINVAL);
                 }
             }
@@ -73,7 +72,7 @@ impl OciClient {
         let layers = stream::iter(&manifest.layers)
             .map(|layer| {
                 let this = &self.client;
-                println!("Media type: {}", layer.media_type);
+                log::debug!("Media type: {}", layer.media_type);
                 async move {
                     let mut out: Vec<u8> = Vec::new();
                     this.pull_blob(r_imgref, layer, &mut out).await?;
