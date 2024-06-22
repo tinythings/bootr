@@ -33,31 +33,28 @@ pub struct OCISysroot {
 }
 
 impl OCISysroot {
-    pub fn new(path: PathBuf) -> Self {
+    pub fn new(path: PathBuf) -> Result<Self, Error> {
         let mut osr = OCISysroot { path, is_empty: true, is_active: false, ..Default::default() };
-        osr.load();
+        osr.load()?;
 
-        osr
+        Ok(osr)
     }
 
     /// Load all the information about current sysroot
-    async fn load(&mut self) -> Result<(), Error> {
+    fn load(&mut self) -> Result<(), Error> {
         // Load status file of the rootfs slot
         let status_file = self.path.join(defaults::C_BOOTR_SECT_STATUS);
         self.is_empty = status_file.exists();
         if !self.is_empty {
-            self.statconf = scfg::get_status_config(status_file).await?;
+            self.statconf = scfg::get_status_config(status_file)?;
         }
 
         // Check if there is a symlink, pointing to it as current.
         // This yields the following schema:
         //
         // /bootr/system/current -> /bootr/system/<NAME>
-        match fs::read_link(PathBuf::from(defaults::C_BOOTR_CURRENT_LNK.to_string())) {
-            Ok(ptr) => {
-                self.is_active = ptr == self.path;
-            }
-            _ => (),
+        if let Ok(ptr) = fs::read_link(PathBuf::from(defaults::C_BOOTR_CURRENT_LNK.to_string())) {
+            self.is_active = ptr == self.path;
         }
 
         Ok(())
@@ -98,7 +95,8 @@ impl OCISysMgr {
             }
         }
 
-        // Load sysroots
+        // Load sysroots idempotently
+        self.sysparts.clear();
         for p in [defaults::C_BOOTR_SECT_A.as_str(), defaults::C_BOOTR_SECT_B.as_str()] {
             log::debug!("Loading sysroot at {}", p);
             self.load_sysroot(PathBuf::from(p))?;
@@ -109,12 +107,10 @@ impl OCISysMgr {
 
     /// Scans all sysroots
     fn load_sysroot(&mut self, pth: PathBuf) -> Result<(), Error> {
-        // Make this idempotent, if sysroots are reloaded.
-        self.sysparts.clear();
         if !pth.exists() {
             return Err(Error::new(std::io::ErrorKind::NotFound, format!("Path at {:?} not found", pth.to_str())));
         }
-        self.sysparts.insert(pth.to_str().unwrap().to_owned(), OCISysroot::new(pth));
+        self.sysparts.insert(pth.to_str().unwrap().to_owned(), OCISysroot::new(pth)?);
         Ok(())
     }
 
@@ -134,7 +130,7 @@ impl OCISysMgr {
     /// This method either creates a new symlink or flips it, if
     /// it is currently points elsewhere.
     pub fn set_active_by_id(&mut self, id: String) -> Result<(), Error> {
-        let target = format!("{}/{}", defaults::C_BOOTR_SYSDIR.to_string(), &id);
+        let target = format!("{}/{}", *defaults::C_BOOTR_SYSDIR, &id);
         let sysroot = self.sysparts.get(target.as_str());
 
         if sysroot.is_none() {
@@ -163,6 +159,7 @@ impl OCISysMgr {
                 )?;
             }
         } else {
+            log::debug!("Creating new symlink to a current sysroot at {:?}", sysroot.path);
             // Create a new symlink to the current sysroot
             symlinkat(sysroot.path.as_os_str(), None, defaults::C_BOOTR_CURRENT_LNK.as_str())?;
         }
@@ -194,9 +191,3 @@ impl OCISysMgr {
         None
     }
 }
-
-/*
-fn foo() {
-    renameat2(old_dirfd, old_path, new_dirfd, new_path, RenameFlags::RENAME_EXCHANGE);
-}
-*/
