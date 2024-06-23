@@ -1,16 +1,24 @@
 // OCI meta
 // Stores system status and hash sums of used layers
 
-use crate::bconf::{
-    defaults,
-    mcfg::BootrConfig,
-    scfg::{self, StatusConfig},
+use super::installer;
+use crate::{
+    bconf::{
+        defaults,
+        mcfg::BootrConfig,
+        scfg::{self, StatusConfig},
+    },
+    ociman::ocidata::OciClient,
 };
 use nix::{
     fcntl::{renameat2, RenameFlags},
     unistd::symlinkat,
 };
 use std::{collections::HashMap, fs, io::Error, path::PathBuf};
+use tokio::{
+    sync::{self, futures},
+    task::{self, spawn_blocking},
+};
 
 /// OCISysroot is an object that contains all the structure of
 /// the container-related metadata and an actual sysroot.
@@ -90,7 +98,7 @@ impl OCISysMgr {
         for s in [defaults::C_BOOTR_SYSDIR.as_str(), defaults::C_BOOTR_SECT_A.as_str(), defaults::C_BOOTR_SECT_B.as_str()] {
             let p = PathBuf::from(s);
             if !p.exists() {
-                log::debug!("Seems system is uninitialised. Creating all directory structure.");
+                log::debug!("Directory {:?} was not found, creating", p);
                 fs::create_dir_all(p)?;
             }
         }
@@ -110,7 +118,43 @@ impl OCISysMgr {
         if !pth.exists() {
             return Err(Error::new(std::io::ErrorKind::NotFound, format!("Path at {:?} not found", pth.to_str())));
         }
-        self.sysparts.insert(pth.to_str().unwrap().to_owned(), OCISysroot::new(pth)?);
+
+        let sr = OCISysroot::new(pth.to_owned());
+        if sr.is_ok() {
+            self.sysparts.insert(pth.to_str().unwrap().to_owned(), sr.unwrap());
+        } else {
+            log::warn!("Skipping sysroot: {}", sr.err().unwrap());
+        }
+
+        Ok(())
+    }
+
+    /// Download latest update for the known image, taken from the Bootr Config.
+    /// This can be used by installer and updater, in case a whole new refresh
+    /// is required. It will download all layers all over again, discarding the
+    /// previous state.
+    async fn download(&self) -> Result<(), Error> {
+        let slot_path = PathBuf::from(defaults::C_BOOTR_SECT_TMP.as_str());
+        log::debug!("Downloading artifacts to {:?}", slot_path);
+        let oci_cnt = OciClient::new(None);
+
+        match oci_cnt.pull(&self.cfg.oci_registry.image).await {
+            Ok(img) => {
+                println!("Manifest: {}", img.manifest.unwrap());
+                println!("{} layers found:", &img.layers.len());
+                for layer in &img.layers {
+                    println!("   Type: {}, size: {}", layer.media_type, layer.data.len());
+                }
+            }
+            Err(x) => println!("Error: {}", x),
+        }
+
+        Ok(())
+    }
+
+    /// Download only delta layers, i.e. what are new from the manifest, merging
+    /// to the existing ones. This is used only by updates.
+    fn download_delta(&self) -> Result<(), Error> {
         Ok(())
     }
 
@@ -189,5 +233,15 @@ impl OCISysMgr {
         }
 
         None
+    }
+
+    /// Install a sysroot from an OCI container image onto existing system
+    pub async fn install(&self) -> Result<(), Error> {
+        log::debug!("Installing OCI container from {}", self.cfg.oci_registry.image);
+
+        self.download().await?;
+        installer::OCIInstaller::new().install()?;
+
+        Ok(())
     }
 }

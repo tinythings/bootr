@@ -39,27 +39,16 @@ async fn run() -> Result<(), Error> {
         .unwrap();
 
     let oci_mgr = OCISysMgr::new(mcfg::get_bootr_config(PathBuf::from(p.get_one::<String>("config").unwrap()))?)?;
-    let oci_cnt = ocidata::OciClient::new(None);
 
     if let Some(subarg) = p.subcommand_matches("install") {
         // System installation
         log::info!("Installing system");
+        oci_mgr.install().await?;
     } else if let Some(subarg) = p.subcommand_matches("update") {
         // System Update
         log::info!("Updating the system");
         if subarg.get_flag("check") {
             todo!("Check for available updates is not implemented yet");
-        } else {
-            match oci_cnt.pull("registry.suse.com/bci/bci-busybox:15.6").await {
-                Ok(img) => {
-                    println!("Manifest: {}", img.manifest.unwrap());
-                    println!("{} layers found:", &img.layers.len());
-                    for layer in &img.layers {
-                        println!("   Type: {}, size: {}", layer.media_type, layer.data.len());
-                    }
-                }
-                Err(x) => println!("Error: {}", x),
-            }
         }
     }
     Ok(())
