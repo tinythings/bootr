@@ -1,7 +1,14 @@
 use lazy_static::lazy_static;
 
+/// Main Bootr directory where "everything" is located
 pub static C_BOOTR_ROOT: &str = "/bootr";
+
+/// Section status file
 pub static C_BOOTR_SECT_STATUS: &str = "status";
+
+/// List of forever untouchable directories
+/// NOTE: subject to change, especially with SELinux :)
+pub static C_BOOTR_SYSDIRS: [&str; 4] = ["/dev", "/proc", "/sys", "/run"];
 
 lazy_static! {
     /// Central configuration file
