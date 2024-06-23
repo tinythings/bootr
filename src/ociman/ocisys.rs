@@ -117,8 +117,8 @@ impl OCISysMgr {
         }
 
         let sr = OCISysroot::new(pth.to_owned());
-        if sr.is_ok() {
-            self.sysparts.insert(pth.to_str().unwrap().to_owned(), sr.unwrap());
+        if let Ok(sr) = sr {
+            self.sysparts.insert(pth.to_str().unwrap().to_owned(), sr);
         } else {
             warn!("Skipping sysroot: {}", sr.err().unwrap());
         }
