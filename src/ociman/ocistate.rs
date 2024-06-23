@@ -61,7 +61,7 @@ impl OCIState {
         match serde_yaml::to_string(class) {
             Ok(yml) => {
                 let mut f = File::create(pth).unwrap();
-                f.write_all(&yml.as_bytes()).unwrap();
+                f.write_all(yml.as_bytes()).unwrap();
             }
             Err(err) => {
                 return Err(Error::new(std::io::ErrorKind::InvalidData, format!("{}", err)));
