@@ -1,0 +1,31 @@
+# This is a state configuration for tracking OCI layers and updates
+# It contains only required information from the OCI Manifest
+# and does not include optional data.
+
+
+
+# Schema version
+#
+# THe property specifies the image manifest schema version.
+schema-version: 2
+
+
+# Config
+#
+# This property references a configuration object for a container, by digest.
+config:
+  media-type: "application/vnd.docker.container.image.v1+json"
+  digest: "sha256:c64045d1a684c19ec77a43dcdd71b91f35afdff77910b7b9b0e728f5df26326b"
+  size: 2526
+
+
+# Layers
+#
+# The array MUST have the base layer at index 0.
+# Subsequent layers MUST then follow in stack order (i.e. from layers[0]
+# to layers[len(layers)-1]). The final filesystem layout MUST match
+# the result of applying the layers to an empty directory.
+layers:
+  - media-type: "application/vnd.docker.image.rootfs.diff.tar.gzip"
+    digest: "sha256:1b437dae25fb57ee2f2fc97096bae23fbe47540eeff33f2f9ab4a67947cbdbec"
+    size: 5537713
