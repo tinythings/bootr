@@ -16,6 +16,7 @@ clap = { version = "4.5.7", features = [
     "wrap_help",
 ] }
 colored = "2.1.0"
+dircpy = "0.3.16"
 futures-util = { version = "0.3.30", features = ["tokio-io"] }
 indexmap = { version = "2.2.6", features = [
     "arbitrary",
