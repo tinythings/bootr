@@ -4,3 +4,4 @@ mod installer;
 // Public
 pub mod ocidata;
 pub mod ocisys;
+pub mod ocistate;
