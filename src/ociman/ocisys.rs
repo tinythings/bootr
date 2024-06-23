@@ -8,17 +8,14 @@ use crate::{
         mcfg::BootrConfig,
         scfg::{self, StatusConfig},
     },
-    ociman::ocidata::OciClient,
+    ociman::{ocidata::OciClient, ocistate::OCIState},
 };
+use log::{debug, warn};
 use nix::{
     fcntl::{renameat2, RenameFlags},
     unistd::symlinkat,
 };
 use std::{collections::HashMap, fs, io::Error, path::PathBuf};
-use tokio::{
-    sync::{self, futures},
-    task::{self, spawn_blocking},
-};
 
 /// OCISysroot is an object that contains all the structure of
 /// the container-related metadata and an actual sysroot.
@@ -98,7 +95,7 @@ impl OCISysMgr {
         for s in [defaults::C_BOOTR_SYSDIR.as_str(), defaults::C_BOOTR_SECT_A.as_str(), defaults::C_BOOTR_SECT_B.as_str()] {
             let p = PathBuf::from(s);
             if !p.exists() {
-                log::debug!("Directory {:?} was not found, creating", p);
+                debug!("Directory {:?} was not found, creating", p);
                 fs::create_dir_all(p)?;
             }
         }
@@ -106,7 +103,7 @@ impl OCISysMgr {
         // Load sysroots idempotently
         self.sysparts.clear();
         for p in [defaults::C_BOOTR_SECT_A.as_str(), defaults::C_BOOTR_SECT_B.as_str()] {
-            log::debug!("Loading sysroot at {}", p);
+            debug!("Loading sysroot at {}", p);
             self.load_sysroot(PathBuf::from(p))?;
         }
 
@@ -123,7 +120,7 @@ impl OCISysMgr {
         if sr.is_ok() {
             self.sysparts.insert(pth.to_str().unwrap().to_owned(), sr.unwrap());
         } else {
-            log::warn!("Skipping sysroot: {}", sr.err().unwrap());
+            warn!("Skipping sysroot: {}", sr.err().unwrap());
         }
 
         Ok(())
@@ -135,13 +132,13 @@ impl OCISysMgr {
     /// previous state.
     async fn download(&self) -> Result<(), Error> {
         let slot_path = PathBuf::from(defaults::C_BOOTR_SECT_TMP.as_str());
-        log::debug!("Downloading artifacts to {:?}", slot_path);
+        debug!("Downloading artifacts to {:?}", slot_path);
         let oci_cnt = OciClient::new(None);
 
         match oci_cnt.pull(&self.cfg.oci_registry.image).await {
             Ok(img) => {
-                println!("Manifest: {}", img.manifest.unwrap());
-                println!("{} layers found:", &img.layers.len());
+                debug!("Importing manifest");
+                OCIState::save(&OCIState::from(img.manifest.to_owned().unwrap()), slot_path)?;
                 for layer in &img.layers {
                     println!("   Type: {}, size: {}", layer.media_type, layer.data.len());
                 }
@@ -203,7 +200,7 @@ impl OCISysMgr {
                 )?;
             }
         } else {
-            log::debug!("Creating new symlink to a current sysroot at {:?}", sysroot.path);
+            debug!("Creating new symlink to a current sysroot at {:?}", sysroot.path);
             // Create a new symlink to the current sysroot
             symlinkat(sysroot.path.as_os_str(), None, defaults::C_BOOTR_CURRENT_LNK.as_str())?;
         }
@@ -237,7 +234,7 @@ impl OCISysMgr {
 
     /// Install a sysroot from an OCI container image onto existing system
     pub async fn install(&self) -> Result<(), Error> {
-        log::debug!("Installing OCI container from {}", self.cfg.oci_registry.image);
+        debug!("Installing OCI container from {}", self.cfg.oci_registry.image);
 
         self.download().await?;
         installer::OCIInstaller::new().install()?;
