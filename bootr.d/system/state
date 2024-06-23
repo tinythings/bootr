@@ -6,7 +6,7 @@
 
 # Schema version
 #
-# THe property specifies the image manifest schema version.
+# The property specifies the image manifest schema version.
 schema-version: 2
 
 
