@@ -1,6 +1,5 @@
 // Bootr Config: bconf
 
-use super::defaults;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -12,22 +11,24 @@ use std::{
 // Part of main BootrConfig
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CnfOciRegistry {
-    image: String,
-    login: IndexMap<String, String>,
+    pub image: String,
+    pub login: IndexMap<String, String>,
 }
 
 // Part of main BootrConfig
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CnfSystem {
-    autoupdate: bool,
-    check: String,
+    pub autoupdate: bool,
+    pub check: String,
+    #[serde(rename = "keep-data")]
+    pub keep_data: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BootrConfig {
     #[serde(rename = "oci-registry")]
-    oci_registry: CnfOciRegistry,
-    system: CnfSystem,
+    pub oci_registry: CnfOciRegistry,
+    pub system: CnfSystem,
 }
 
 /// Read bootr config

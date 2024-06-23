@@ -18,8 +18,14 @@ system:
   # and the poller should be removed permanently.
   check: 5m
 
-  # Skip the following directories from processing
+  # Preserve following data from target renewal
+  # This data will be copied over to the new sysroot.
   # NOTE: /proc, /dev, /sys and /run are *always* untouched!
-  skip-directories:
+  keep-data:
+    # Dirs
     - /boot
     - /lib/modules
+
+    # Files
+    - /etc/passwd
+    - /etc/shadow
