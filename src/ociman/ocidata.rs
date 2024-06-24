@@ -43,8 +43,11 @@ impl OciClient {
         self
     }
 
-    /// Pull data
-    pub async fn pull(&self, uri: &str) -> Result<ImageData, nix::errno::Errno> {
+    /// Pull data.
+    ///
+    /// URI is the location of an image and "local_layers" are the SHA256 sums
+    /// of layers that should not be pulled, as they are already locally available.
+    pub async fn pull(&self, uri: &str, local_layers: Vec<String>) -> Result<ImageData, nix::errno::Errno> {
         let imgref = Reference::try_from(uri);
         if imgref.is_err() {
             return Err(nix::errno::Errno::EINVAL);

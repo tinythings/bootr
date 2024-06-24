@@ -4,8 +4,7 @@ mod logger;
 mod ociman;
 
 use bconf::mcfg;
-use clap::ArgMatches;
-use ociman::{ocidata, ocisys::OCISysMgr};
+use ociman::ocisys::OCISysMgr;
 use std::{env, io::Error, path::PathBuf};
 
 static VERSION: &str = "0.0.1";
@@ -42,7 +41,6 @@ async fn run() -> Result<(), Error> {
 
     if let Some(subarg) = p.subcommand_matches("install") {
         // System installation
-        log::info!("Installing system");
         oci_mgr.install().await?;
     } else if let Some(subarg) = p.subcommand_matches("update") {
         // System Update

@@ -8,14 +8,22 @@ use crate::{
         mcfg::BootrConfig,
         scfg::{self, StatusConfig},
     },
-    ociman::{ocidata::OciClient, ocistate::OCIState},
+    ociman::{
+        ocidata::OciClient,
+        ocistate::{OCIMeta, OCIMetaTryFrom},
+    },
 };
-use log::{debug, warn};
+use log::{debug, info, warn};
 use nix::{
     fcntl::{renameat2, RenameFlags},
     unistd::symlinkat,
 };
-use std::{collections::HashMap, fs, io::Error, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io::{Error, Write},
+    path::PathBuf,
+};
 
 /// OCISysroot is an object that contains all the structure of
 /// the container-related metadata and an actual sysroot.
@@ -130,18 +138,43 @@ impl OCISysMgr {
     /// This can be used by installer and updater, in case a whole new refresh
     /// is required. It will download all layers all over again, discarding the
     /// previous state.
-    async fn download(&self) -> Result<(), Error> {
-        let slot_path = PathBuf::from(defaults::C_BOOTR_SECT_TMP.as_str());
-        debug!("Downloading artifacts to {:?}", slot_path);
+    ///
+    /// Current implementation assumes if a destination (dst) directory is empty,
+    /// then this is a new installation. Otherwise update operation and OCI state
+    /// file is required.
+    async fn download(&self, dst: &PathBuf) -> Result<(), Error> {
+        debug!("Checking the environment mode");
+        if !dst.exists() {
+            return Err(Error::new(std::io::ErrorKind::NotFound, format!("Path {:?} does not exist!", dst)));
+        }
+
+        // Get meta, if any
+        let mut oci_meta: Option<OCIMeta> = None;
+        if let Ok(meta) = <OCIMeta as OCIMetaTryFrom<_>>::try_from(&dst.join(defaults::C_BOOTR_SECT_OCI_META)) {
+            oci_meta = Some(meta);
+        }
+        debug!("{} mode", if oci_meta.is_some() { "Update" } else { "Install" });
+
+        info!("Downloading OCI data to {:?}", dst);
         let oci_cnt = OciClient::new(None);
 
-        match oci_cnt.pull(&self.cfg.oci_registry.image).await {
+        match oci_cnt
+            .pull(
+                &self.cfg.oci_registry.image,
+                if oci_meta.is_some() { oci_meta.unwrap().get_layers_as_digests() } else { vec![] },
+            )
+            .await
+        {
             Ok(img) => {
-                debug!("Importing manifest");
-                OCIState::save(&OCIState::from(img.manifest.to_owned().unwrap()), slot_path)?;
                 for layer in &img.layers {
-                    println!("   Type: {}, size: {}", layer.media_type, layer.data.len());
+                    let dst_layer = dst.join(layer.sha256_digest().trim_start_matches("sha256:"));
+                    debug!("Writing layer: {}, size: {} to {:?}", layer.media_type, layer.data.len(), dst_layer);
+                    let mut f = File::create(dst_layer)?;
+                    f.write_all(&layer.data)?;
                 }
+
+                info!("Importing data from the OCI manifest");
+                OCIMeta::save(&OCIMeta::from(img.manifest.to_owned().unwrap()), dst)?;
             }
             Err(x) => println!("Error: {}", x),
         }
@@ -232,12 +265,34 @@ impl OCISysMgr {
         None
     }
 
-    /// Install a sysroot from an OCI container image onto existing system
-    pub async fn install(&self) -> Result<(), Error> {
-        debug!("Installing OCI container from {}", self.cfg.oci_registry.image);
+    /// Update an existing sysroot from an OCI container image.
+    ///
+    /// Update process finds the oldest, non-active slot in the /bootr/system directory
+    /// and copies it entirely into a .temp directory and then adding layers that
+    /// weren't yet applied. Once done that, it renames .temp into the slot name
+    pub async fn update(&self) -> Result<(), Error> {
+        todo!("Not implemented yet");
+    }
 
-        self.download().await?;
-        installer::OCIInstaller::new().install()?;
+    /// Install a sysroot from an OCI container image onto existing system.
+    ///
+    /// Installation process initiates an empty .temp in the /bootr/system directory,
+    /// because it meant to start a new system "from scratch". This is contrary to
+    /// the update session, where an older slot is taken as a base and then moved
+    /// to the same .temp directory in the /bootr/system.
+    pub async fn install(&self) -> Result<(), Error> {
+        info!("Installing system from OCI container at {}", self.cfg.oci_registry.image);
+
+        // Prepare slot
+        let slot_path = PathBuf::from(defaults::C_BOOTR_SECT_TMP.to_string());
+        if slot_path.exists() {
+            fs::remove_dir_all(&slot_path)?;
+        }
+        fs::create_dir_all(&slot_path)?;
+
+        // Download data to the slot.
+        self.download(&slot_path).await?;
+        installer::OCIInstaller::new(slot_path.join(defaults::C_BOOTR_SECT_RFS_DIR)).install()?;
 
         Ok(())
     }

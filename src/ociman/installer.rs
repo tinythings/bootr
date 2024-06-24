@@ -1,8 +1,11 @@
-use dircpy::CopyBuilder;
-
 use crate::bconf::defaults;
-use std::{fs, io::Error, path::PathBuf};
+use dircpy::CopyBuilder;
 use log::{debug, error, info, warn};
+use std::{
+    fs,
+    io::Error,
+    path::{Path, PathBuf},
+};
 
 /// OCI container installer.
 ///
@@ -48,12 +51,17 @@ pub struct OCIInstaller {
 /// Implementation of the OCI container installer.
 impl OCIInstaller {
     /// Constructor
-    pub fn new() -> Self {
+    pub fn new<P: AsRef<Path>>(pth: P) -> Self {
         OCIInstaller {
             // TODO: Kernel handling (update/install) is not implemented yet
             keep_kernel: true,
-            buildroot: PathBuf::from(defaults::C_BOOTR_SECT_TMP.to_string()).join("build"),
+            buildroot: pth.as_ref().to_path_buf(),
         }
+    }
+
+    /// Unpack required layers
+    fn populate_oci_data(&self) -> Result<(), Error> {
+        Ok(())
     }
 
     /// Populate system directories (mountpoints) inside the slot.
@@ -116,11 +124,12 @@ impl OCIInstaller {
         self.populate_dirtree()?;
 
         // Unpack downloaded OCI artefacts
+        self.populate_oci_data()?;
 
         // If kernel requested to be preserved, keep it.
         // This then include /boot as well, because the initramfs
         // won't be regenerated at this point.
-        // self.maybe_keep_kernel()?;
+        self.maybe_keep_kernel()?;
 
         Ok(())
     }
