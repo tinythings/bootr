@@ -162,7 +162,7 @@ impl OCISysMgr {
         match oci_cnt
             .pull(
                 &self.cfg.oci_registry.image,
-                if oci_meta.is_some() { oci_meta.unwrap().get_layers_as_digests() } else { vec![] },
+                if let Some(oci_meta) = oci_meta { oci_meta.get_layers_as_digests() } else { vec![] },
             )
             .await
         {
