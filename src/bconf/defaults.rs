@@ -6,6 +6,12 @@ pub static C_BOOTR_ROOT: &str = "/bootr";
 /// Section status file
 pub static C_BOOTR_SECT_STATUS: &str = "status";
 
+/// Section OCI metadata file
+pub static C_BOOTR_SECT_OCI_META: &str = "oci-meta";
+
+/// Name of the rootfs entry within the slot (any)
+pub static C_BOOTR_SECT_RFS_DIR: &str = "rootfs";
+
 /// List of forever untouchable directories
 /// NOTE: subject to change, especially with SELinux :)
 pub static C_BOOTR_SYSDIRS: [&str; 4] = ["/dev", "/proc", "/sys", "/run"];
