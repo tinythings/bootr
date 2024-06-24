@@ -2,6 +2,7 @@ use dircpy::CopyBuilder;
 
 use crate::bconf::defaults;
 use std::{fs, io::Error, path::PathBuf};
+use log::{debug, error, info, warn};
 
 /// OCI container installer.
 ///
@@ -58,21 +59,21 @@ impl OCIInstaller {
     /// Populate system directories (mountpoints) inside the slot.
     fn populate_dirtree(&self) -> Result<(), Error> {
         // Flush build dir if any and re-empty it again
-        log::debug!("Preparing build dir");
+        debug!("Preparing build dir");
         if self.buildroot.exists() {
             fs::remove_dir_all(&self.buildroot)?;
             fs::create_dir_all(&self.buildroot)?;
         }
 
-        log::debug!("Populating system directories into {:?}", self.buildroot);
+        debug!("Populating system directories into {:?}", self.buildroot);
         for sd in defaults::C_BOOTR_SYSDIRS {
             let p = self.buildroot.join(sd.trim_start_matches('/'));
             if p.exists() {
-                log::warn!("Directory {} already exists! Removing, including its content...", p.as_os_str().to_str().unwrap());
+                warn!("Directory {} already exists! Removing, including its content...", p.as_os_str().to_str().unwrap());
                 fs::remove_dir_all(&p)?;
             }
 
-            log::debug!("Creating {} directory", p.as_os_str().to_str().unwrap());
+            debug!("Creating {} directory", p.as_os_str().to_str().unwrap());
             fs::create_dir_all(p)?;
         }
         Ok(())
@@ -87,16 +88,16 @@ impl OCIInstaller {
             return Ok(());
         }
 
-        log::debug!("Keeping kernel, boot options and initramfs from the current image");
+        info!("Keeping kernel, boot options and initramfs from the current image");
         for sd in ["/boot", "/lib/modules"] {
             let tgt = self.buildroot.join(sd.trim_start_matches('/'));
-            log::debug!("Copying {} to {:?}", sd, tgt);
+            debug!("Copying {} to {:?}", sd, tgt);
             if !tgt.exists() {
                 fs::create_dir_all(&tgt)?;
             }
 
             if let Err(err) = CopyBuilder::new(sd, &tgt).overwrite(true).run() {
-                log::error!("Cannot copy {:?} to {:?}", sd, tgt.parent().unwrap());
+                error!("Cannot copy {:?} to {:?}", sd, tgt.parent().unwrap());
                 return Err(Error::new(std::io::ErrorKind::InvalidData, err.to_string()));
             }
         }
