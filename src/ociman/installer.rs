@@ -1,11 +1,15 @@
 use crate::bconf::defaults;
 use dircpy::CopyBuilder;
+use flate2::read::GzDecoder;
 use log::{debug, error, info, warn};
 use std::{
-    fs,
+    fs::{self, File},
     io::Error,
     path::{Path, PathBuf},
 };
+use tar::Archive;
+
+use super::ocistate::{OCIMeta, OCIMetaTryFrom};
 
 /// OCI container installer.
 ///
@@ -59,8 +63,26 @@ impl OCIInstaller {
         }
     }
 
-    /// Unpack required layers
+    /// Unpack required layers and remove them from the disk, once done.
     fn populate_oci_data(&self) -> Result<(), Error> {
+        info!("Applying OCI data");
+        let br_parent = self.buildroot.parent().unwrap().to_path_buf();
+        let meta = <OCIMeta as OCIMetaTryFrom<PathBuf>>::try_from(br_parent.join(defaults::C_BOOTR_SECT_OCI_META).to_owned())?;
+        for layer in meta.layers {
+            // Handle "vnd.docker.image" and "vnd.oci.image". What a mess... :-(
+            if layer.media_type.ends_with("tar.gzip") || layer.media_type.ends_with(".tar+gzip") {
+                let arcp = &br_parent.join(layer.digest.trim_start_matches("sha256:"));
+                debug!("Reading layer at {:?}", arcp);
+                if !arcp.exists() {
+                    return Err(Error::new(std::io::ErrorKind::NotFound, format!("Layer file at {:?} was not found", arcp)));
+                }
+
+                debug!("Unpacking archive to {:?}", self.buildroot);
+                Archive::new(GzDecoder::new(File::open(arcp)?)).unpack(&self.buildroot)?;
+                fs::remove_file(arcp)?;
+                info!("Layer {} applied", layer.digest);
+            }
+        }
         Ok(())
     }
 
@@ -113,17 +135,12 @@ impl OCIInstaller {
         Ok(())
     }
 
-    /// Unpack OCI data, according to the configuration and layers.
-    fn unpack_oci_data(&self) -> Result<(), Error> {
-        Ok(())
-    }
-
     /// Main method for the installation to begin
     pub fn install(&self) -> Result<(), Error> {
         // Flush the buildroot, if any and [re]create it.
         self.populate_dirtree()?;
 
-        // Unpack downloaded OCI artefacts
+        // Unpack downloaded OCI artefacts and remove the archives from the disk
         self.populate_oci_data()?;
 
         // If kernel requested to be preserved, keep it.

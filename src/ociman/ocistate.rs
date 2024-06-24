@@ -106,11 +106,11 @@ impl From<OciImageManifest> for OCIMeta {
     }
 }
 
-impl<T: ?Sized + AsRef<Path>> OCIMetaTryFrom<&T> for OCIMeta {
+impl<T: AsRef<Path>> OCIMetaTryFrom<T> for OCIMeta {
     type Error = io::Error;
 
     /// Try load from a file
-    fn try_from(pth: &T) -> Result<Self, Self::Error> {
+    fn try_from(pth: T) -> Result<Self, Self::Error> {
         let pth = PathBuf::from(pth.as_ref());
         match serde_yaml::from_reader(BufReader::new(File::open(pth)?)) {
             Ok(state) => Ok(state),

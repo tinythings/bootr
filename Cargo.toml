@@ -17,6 +17,7 @@ clap = { version = "4.5.7", features = [
 ] }
 colored = "2.1.0"
 dircpy = "0.3.16"
+flate2 = "1.0.30"
 futures-util = { version = "0.3.30", features = ["tokio-io"] }
 indexmap = { version = "2.2.6", features = [
     "arbitrary",
@@ -71,6 +72,7 @@ oci-distribution = { version = "0.11.0", features = [
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = { version = "1.0.117", features = ["alloc", "arbitrary_precision", "float_roundtrip", "indexmap", "preserve_order", "raw_value", "unbounded_depth"] }
 serde_yaml = "0.9.34"
+tar = "0.4.41"
 tokio = { version = "1.38.0", features = [
     "bytes",
     "fs",

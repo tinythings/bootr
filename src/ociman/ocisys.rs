@@ -13,7 +13,7 @@ use crate::{
         ocistate::{OCIMeta, OCIMetaTryFrom},
     },
 };
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use nix::{
     fcntl::{renameat2, RenameFlags},
     unistd::symlinkat,
@@ -24,6 +24,7 @@ use std::{
     io::{Error, Write},
     path::PathBuf,
 };
+use tokio::sync::mpsc::error;
 
 /// OCISysroot is an object that contains all the structure of
 /// the container-related metadata and an actual sysroot.
@@ -150,7 +151,7 @@ impl OCISysMgr {
 
         // Get meta, if any
         let mut oci_meta: Option<OCIMeta> = None;
-        if let Ok(meta) = <OCIMeta as OCIMetaTryFrom<_>>::try_from(&dst.join(defaults::C_BOOTR_SECT_OCI_META)) {
+        if let Ok(meta) = <OCIMeta as OCIMetaTryFrom<PathBuf>>::try_from(dst.join(defaults::C_BOOTR_SECT_OCI_META)) {
             oci_meta = Some(meta);
         }
         debug!("{} mode", if oci_meta.is_some() { "Update" } else { "Install" });
@@ -168,7 +169,7 @@ impl OCISysMgr {
             Ok(img) => {
                 for layer in &img.layers {
                     let dst_layer = dst.join(layer.sha256_digest().trim_start_matches("sha256:"));
-                    debug!("Writing layer: {}, size: {} to {:?}", layer.media_type, layer.data.len(), dst_layer);
+                    info!("Layer: {:?}, size: {}", dst_layer.file_name().unwrap_or_default(), layer.data.len(),);
                     let mut f = File::create(dst_layer)?;
                     f.write_all(&layer.data)?;
                 }
@@ -176,15 +177,9 @@ impl OCISysMgr {
                 info!("Importing data from the OCI manifest");
                 OCIMeta::save(&OCIMeta::from(img.manifest.to_owned().unwrap()), dst)?;
             }
-            Err(x) => println!("Error: {}", x),
+            Err(err) => error!("Error: {}", err),
         }
 
-        Ok(())
-    }
-
-    /// Download only delta layers, i.e. what are new from the manifest, merging
-    /// to the existing ones. This is used only by updates.
-    fn download_delta(&self) -> Result<(), Error> {
         Ok(())
     }
 

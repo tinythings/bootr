@@ -4,6 +4,7 @@
 use futures_util::stream;
 use futures_util::StreamExt;
 use futures_util::TryStreamExt;
+use log::debug;
 use oci_distribution::{
     client::{ClientConfig, Config, ImageData, ImageLayer},
     errors::OciDistributionError,
@@ -75,10 +76,15 @@ impl OciClient {
         let layers = stream::iter(&manifest.layers)
             .map(|layer| {
                 let this = &self.client;
-                log::debug!("Media type: {}", layer.media_type);
+                let known = local_layers.contains(&layer.digest);
                 async move {
                     let mut out: Vec<u8> = Vec::new();
-                    this.pull_blob(r_imgref, layer, &mut out).await?;
+                    if !known {
+                        this.pull_blob(r_imgref, layer, &mut out).await?;
+                    } else {
+                        // No body of a known layer is included, because it is not needed anyways
+                        debug!("Skipping layer {}", layer.digest);
+                    }
                     Ok::<_, OciDistributionError>(ImageLayer::new(out, layer.media_type.clone(), layer.annotations.clone()))
                 }
             })
