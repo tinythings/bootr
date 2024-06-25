@@ -85,64 +85,67 @@ impl OCIInstaller {
             Archive::new(GzDecoder::new(File::open(layer_arc_pth)?)).unpack(&self.buildroot)?;
             fs::remove_file(layer_arc_pth)?;
             info!("Base layer {} applied", digest);
-        } else {
-            let dst = self.buildroot.join("tmp"); // This is a /tmp on the target, but might not exist
-            let dst_dirty = !dst.exists();
-            if dst_dirty {
-                debug!("Creating temp directory on target at {:?}", dst);
-                fs::create_dir_all(&dst)?;
-            }
-            let dst = dst.join(digest.as_str()); // This contains /tmp/<SHA256> with the diff in it
-            fs::create_dir_all(&dst)?;
-
-            Archive::new(GzDecoder::new(File::open(layer_arc_pth)?)).unpack(&dst)?;
-            fs::remove_file(layer_arc_pth)?;
-
-            for e in WalkDir::new(&dst).into_iter().flatten() {
-                if e.file_name().to_str().unwrap().starts_with(Self::WHITEOUT) {
-                    // Trim the temporary path to diff-related path only
-                    let wh_p = self.buildroot.join(
-                        e.path()
-                            .to_str()
-                            .unwrap()
-                            .split_once(&digest)
-                            .unwrap_or_default()
-                            .1
-                            .trim_start_matches('/')
-                            .replace(Self::WHITEOUT, ""),
-                    );
-
-                    // If diff went bonkers, we just stop everything, preventing permanent system damage
-                    if !wh_p.exists() {
-                        return Err(Error::new(
-                            std::io::ErrorKind::NotFound,
-                            format!("Requested object does not exists at {:?}", wh_p),
-                        ));
-                    }
-
-                    // First, remove the target
-                    if wh_p.is_dir() {
-                        fs::remove_dir_all(&wh_p)?;
-                    } else {
-                        fs::remove_file(&wh_p)?;
-                    }
-
-                    // Now remove the whiteout marker
-                    fs::remove_file(e.path())?;
-                }
-            }
-
-            // Copy over the temporary diff and remove the temp
-            CopyBuilder::new(&dst, &self.buildroot).overwrite(true).run()?;
-
-            // Remove temporary directory for this layer
-            fs::remove_dir_all(&dst)?;
-            if dst_dirty {
-                fs::remove_dir_all(dst.parent().unwrap())?;
-            }
-
-            info!("Diff layer {} applied", digest);
+            return Ok(());
         }
+
+        // Applying diff
+        let dst = self.buildroot.join("tmp"); // This is a /tmp on the target, but might not exist
+        let dst_dirty = !dst.exists();
+        if dst_dirty {
+            debug!("Creating temp directory on target at {:?}", dst);
+            fs::create_dir_all(&dst)?;
+        }
+        let dst = dst.join(digest.as_str()); // This contains /tmp/<SHA256> with the diff in it
+        fs::create_dir_all(&dst)?;
+
+        Archive::new(GzDecoder::new(File::open(layer_arc_pth)?)).unpack(&dst)?;
+        fs::remove_file(layer_arc_pth)?;
+
+        for e in WalkDir::new(&dst).into_iter().flatten() {
+            if e.file_name().to_str().unwrap().starts_with(Self::WHITEOUT) {
+                // Trim the temporary path to diff-related path only
+                let wh_p = self.buildroot.join(
+                    e.path()
+                        .to_str()
+                        .unwrap()
+                        .split_once(&digest)
+                        .unwrap_or_default()
+                        .1
+                        .trim_start_matches('/')
+                        .replace(Self::WHITEOUT, ""),
+                );
+
+                // If diff went bonkers, we just stop everything, preventing permanent system damage
+                if !wh_p.exists() {
+                    return Err(Error::new(
+                        std::io::ErrorKind::NotFound,
+                        format!("Requested object does not exists at {:?}", wh_p),
+                    ));
+                }
+
+                // First, remove the target
+                if wh_p.is_dir() {
+                    fs::remove_dir_all(&wh_p)?;
+                } else {
+                    fs::remove_file(&wh_p)?;
+                }
+
+                // Now remove the whiteout marker
+                fs::remove_file(e.path())?;
+            }
+        }
+
+        // Copy over the temporary diff and remove the temp
+        CopyBuilder::new(&dst, &self.buildroot).overwrite(true).run()?;
+
+        // Remove temporary directory for this layer
+        fs::remove_dir_all(&dst)?;
+        if dst_dirty {
+            fs::remove_dir_all(dst.parent().unwrap())?;
+        }
+
+        info!("Diff layer {} applied", digest);
+
         Ok(())
     }
 
