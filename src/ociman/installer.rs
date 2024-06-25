@@ -217,8 +217,8 @@ impl OCIInstaller {
         Ok(())
     }
 
-    /// Main method for the installation to begin
-    pub fn install(&self) -> Result<(), Error> {
+    /// Installs a new slot from OCI data into "A"
+    pub fn install(&self) -> Result<PathBuf, Error> {
         // Flush the buildroot, if any and [re]create it.
         self.populate_dirtree()?;
 
@@ -230,6 +230,6 @@ impl OCIInstaller {
         // won't be regenerated at this point.
         self.maybe_keep_kernel()?;
 
-        Ok(())
+        Ok(self.buildroot.parent().unwrap().to_owned())
     }
 }
