@@ -17,11 +17,12 @@ use log::{debug, error, info, warn};
 use nix::{
     fcntl::{renameat2, RenameFlags},
     unistd::symlinkat,
+    NixPath,
 };
 use std::{
     collections::HashMap,
     fs::{self, File},
-    io::{Error, Write},
+    io::{Error, ErrorKind, Write},
     path::PathBuf,
 };
 
@@ -121,7 +122,7 @@ impl OCISysMgr {
     /// Scans all sysroots
     fn load_sysroot(&mut self, pth: PathBuf) -> Result<(), Error> {
         if !pth.exists() {
-            return Err(Error::new(std::io::ErrorKind::NotFound, format!("Path at {:?} not found", pth.to_str())));
+            return Err(Error::new(ErrorKind::NotFound, format!("Path at {:?} not found", pth.to_str())));
         }
 
         let sr = OCISysroot::new(pth.to_owned());
@@ -145,7 +146,7 @@ impl OCISysMgr {
     async fn download(&self, dst: &PathBuf) -> Result<(), Error> {
         debug!("Checking the environment mode");
         if !dst.exists() {
-            return Err(Error::new(std::io::ErrorKind::NotFound, format!("Path {:?} does not exist!", dst)));
+            return Err(Error::new(ErrorKind::NotFound, format!("Path {:?} does not exist!", dst)));
         }
 
         // Get meta, if any
@@ -202,7 +203,7 @@ impl OCISysMgr {
         let sysroot = self.sysparts.get(target.as_str());
 
         if sysroot.is_none() {
-            return Err(Error::new(std::io::ErrorKind::NotFound, format!("Sysroot by ID '{}' was not found", id)));
+            return Err(Error::new(ErrorKind::NotFound, format!("Sysroot by ID '{}' was not found", id)));
         }
         let sysroot = sysroot.unwrap();
 
@@ -211,7 +212,7 @@ impl OCISysMgr {
             // Flip the symlink only if current sysroot is different than requested
             // This operation should be atomic. To achieve it, this code does the following:
             //
-            // 1. creates a symlink to a new location, called "current.new"
+            // 1. creates a symlink to a new location, called "current.temp"
             // 2. renames "current.new" into "current" (mv -T)
             if !sysroot.is_active {
                 // Create a temporary new symlink
@@ -275,6 +276,29 @@ impl OCISysMgr {
     /// the update session, where an older slot is taken as a base and then moved
     /// to the same .temp directory in the /bootr/system.
     pub async fn install(&self) -> Result<(), Error> {
+        // Check if installation can be performed at all
+        let mut can_install = true;
+        if PathBuf::from(defaults::C_BOOTR_CURRENT_LNK.to_string()).exists() {
+            debug!("Current slot pointer found");
+            can_install = false;
+        }
+
+        if can_install {
+            for sect in [defaults::C_BOOTR_SECT_A.as_str(), defaults::C_BOOTR_SECT_B.as_str()] {
+                let s_pth = PathBuf::from(sect);
+                if s_pth.exists() && !s_pth.read_dir()?.next().is_none() {
+                    debug!("{:?} is not empty", s_pth);
+                    can_install = false;
+                    break;
+                }
+            }
+        }
+
+        if !can_install {
+            return Err(Error::new(ErrorKind::AlreadyExists, "System seems already installed"));
+        }
+
+        // Perform the installation
         info!("Installing system from OCI container at {}", self.cfg.oci_registry.image);
 
         // Prepare slot
@@ -286,7 +310,26 @@ impl OCISysMgr {
 
         // Download data to the slot.
         self.download(&slot_path).await?;
-        installer::OCIInstaller::new(slot_path.join(defaults::C_BOOTR_SECT_RFS_DIR)).install()?;
+
+        // Install a new OCI content into a temporary slot
+        let slot_path = installer::OCIInstaller::new(slot_path.join(defaults::C_BOOTR_SECT_RFS_DIR)).install()?;
+
+        // Atomically flip temporary slot to "A" (at this point A and B are empty)
+        renameat2(
+            None,
+            slot_path.to_str().unwrap(),
+            None,
+            slot_path.parent().unwrap().join(defaults::C_BOOTR_SECT_A.to_string()).to_str().unwrap(),
+            RenameFlags::RENAME_EXCHANGE,
+        )?;
+
+        // Remove empty temporary slot
+        fs::remove_dir(slot_path)?;
+
+        // Symlink "A" slot as current
+        symlinkat(defaults::C_BOOTR_SECT_A.as_str(), None, defaults::C_BOOTR_CURRENT_LNK.as_str())?;
+
+        info!("OCI image {} installed successfully. Probably... :-)", self.cfg.oci_registry.image);
 
         Ok(())
     }
