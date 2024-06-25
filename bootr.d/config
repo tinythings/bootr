@@ -1,9 +1,11 @@
 # OCI registry-related scope
 oci-registry:
   # Source image to update from
-  image: registry.suse.com/bci/bci-busybox:15.6
+  # image: registry.suse.com/bci/bci-busybox:15.6
+  image: theisbm/busybox:15.6
 
-  # Optional login. If omitted, then anonymous
+  # Optional login for hidden images. If omitted, then anonymous
+  # WARNING: These credentials should be only for pulling and NEVER for pushing!
   login:
     user: kevin
     password: the8minion
