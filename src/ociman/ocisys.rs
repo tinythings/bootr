@@ -286,7 +286,7 @@ impl OCISysMgr {
         if can_install {
             for sect in [defaults::C_BOOTR_SECT_A.as_str(), defaults::C_BOOTR_SECT_B.as_str()] {
                 let s_pth = PathBuf::from(sect);
-                if s_pth.exists() && !s_pth.read_dir()?.next().is_none() {
+                if s_pth.exists() && s_pth.read_dir()?.next().is_some() {
                     debug!("{:?} is not empty", s_pth);
                     can_install = false;
                     break;
