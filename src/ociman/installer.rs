@@ -2,9 +2,7 @@ use crate::bconf::defaults;
 use dircpy::CopyBuilder;
 use flate2::read::GzDecoder;
 use log::{debug, error, info, warn};
-use nix::NixPath;
 use std::{
-    collections::HashMap,
     fs::{self, File},
     io::Error,
     path::{Path, PathBuf},
@@ -230,7 +228,7 @@ impl OCIInstaller {
         // If kernel requested to be preserved, keep it.
         // This then include /boot as well, because the initramfs
         // won't be regenerated at this point.
-        //self.maybe_keep_kernel()?;
+        self.maybe_keep_kernel()?;
 
         Ok(())
     }

@@ -24,7 +24,6 @@ use std::{
     io::{Error, Write},
     path::PathBuf,
 };
-use tokio::sync::mpsc::error;
 
 /// OCISysroot is an object that contains all the structure of
 /// the container-related metadata and an actual sysroot.
