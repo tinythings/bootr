@@ -6,7 +6,7 @@ use crate::{
     bconf::{
         defaults,
         mcfg::BootrConfig,
-        scfg::{self, StatusConfig},
+        scfg::{self, ociconf_to_file, StatusConfig},
     },
     ociman::{
         ocidata::OciClient,
@@ -17,12 +17,12 @@ use log::{debug, error, info, warn};
 use nix::{
     fcntl::{renameat2, RenameFlags},
     unistd::symlinkat,
-    NixPath,
 };
 use std::{
     collections::HashMap,
     fs::{self, File},
     io::{Error, ErrorKind, Write},
+    iter::once,
     path::PathBuf,
 };
 
@@ -176,8 +176,43 @@ impl OCISysMgr {
 
                 info!("Importing data from the OCI manifest");
                 OCIMeta::save(&OCIMeta::from(img.manifest.to_owned().unwrap()), dst)?;
+                ociconf_to_file(img.config.data, dst.join(defaults::C_BOOTR_SECT_STATUS))?;
             }
             Err(err) => error!("Error: {}", err),
+        }
+
+        Ok(())
+    }
+
+    /// Physically erase existing rootfs
+    fn erase_existing_rootfs(&self) -> Result<(), Error> {
+        info!("Removing existing host rootfs");
+        let skip_dirs: Vec<&str> =
+            defaults::C_BOOTR_SYSDIRS.iter().chain([&defaults::C_BOOTR_ROOT, &"/lost+found"]).cloned().collect();
+        for aft in fs::read_dir("/")?.into_iter().flatten() {
+            if !skip_dirs.contains(&aft.path().as_os_str().to_str().unwrap_or_default()) {
+                if aft.path().is_dir() {
+                    debug!("Removing {:?}", aft.path());
+                    fs::remove_dir_all(aft.path())?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Re-symlink currently appointed rootfs from currently installed
+    fn activate_current_rootfs(&self, pth: PathBuf) -> Result<(), Error> {
+        info!("Activating current rootfs");
+        let skip_dirs: Vec<&str> =
+            defaults::C_BOOTR_SYSDIRS.iter().chain([&defaults::C_BOOTR_ROOT, &"/lost+found"]).cloned().collect();
+        for aft in fs::read_dir(&pth)?.into_iter().flatten() {
+            let aft_path = aft.path();
+            let rfs_path = PathBuf::from("/").join(aft_path.strip_prefix(pth.to_str().unwrap()).unwrap());
+            if !skip_dirs.contains(&rfs_path.as_os_str().to_str().unwrap_or_default()) {
+                debug!("Symlinking {:?}  -->  {:?}", aft_path, rfs_path);
+                symlinkat(aft_path.as_os_str().to_str().unwrap(), None, rfs_path.as_os_str().to_str().unwrap())?;
+            }
         }
 
         Ok(())
@@ -324,10 +359,20 @@ impl OCISysMgr {
         )?;
 
         // Remove empty temporary slot
-        fs::remove_dir(slot_path)?;
+        fs::remove_dir(&slot_path)?;
 
         // Symlink "A" slot as current
         symlinkat(defaults::C_BOOTR_SECT_A.as_str(), None, defaults::C_BOOTR_CURRENT_LNK.as_str())?;
+
+        // Remove current root filesystem and point to the newly installed one
+        self.erase_existing_rootfs()?;
+        self.activate_current_rootfs(
+            slot_path
+                .parent()
+                .unwrap()
+                .join(defaults::C_BOOTR_CURRENT_LNK.to_string())
+                .join(defaults::C_BOOTR_SECT_RFS_DIR.to_string()),
+        )?;
 
         info!("OCI image {} installed successfully. Probably... :-)", self.cfg.oci_registry.image);
 
