@@ -9,6 +9,14 @@ pub static C_BOOTR_SECT_STATUS: &str = "status";
 /// Section OCI metadata file
 pub static C_BOOTR_SECT_OCI_META: &str = "oci-meta";
 
+/// Marker that this system is just freshly installed.
+/// It is merely used as another step to prevent disasters
+/// such as replacing current rootfs with a wrong one. :-)
+///
+/// This file is placed right after the fresh installation (happens once)
+/// and then removed right after the filesystem is replaced (symlinked)
+pub static C_BOOTR_SECT_INSTALLED_MARKER: &str = ".installed";
+
 /// Name of the rootfs entry within the slot (any)
 pub static C_BOOTR_SECT_RFS_DIR: &str = "rootfs";
 
