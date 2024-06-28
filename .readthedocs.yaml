@@ -10,4 +10,11 @@ build:
     python: "3.12"
 
 sphinx:
+  builder: html
   configuration: doc/conf.py
+  fail_on_warning: false
+
+python:
+  install:
+    - requirements: doc/requirements.txt
+
