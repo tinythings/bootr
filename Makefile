@@ -2,7 +2,7 @@
 .PHONY:build bootr-release-static bootr-debug-static
 
 ARCH := $(shell uname -p)
-ARC_VERSION := $(shell cat src/bootr.rs | grep 'static VERSION' | sed -e 's/.*=//g' -e 's/[" ;]//g')
+ARC_VERSION := $(shell cat src/main.rs | grep 'static VERSION' | sed -e 's/.*=//g' -e 's/[" ;]//g')
 ARC_NAME := bootr-${ARC_VERSION}
 
 bootr-release-static:
