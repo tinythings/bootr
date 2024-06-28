@@ -22,7 +22,6 @@ use std::{
     collections::HashMap,
     fs::{self, File},
     io::{Error, ErrorKind, Write},
-    iter::once,
     path::PathBuf,
 };
 
@@ -86,12 +85,23 @@ pub struct OCISysMgr {
     /// keeping track of several locations,
     /// if more than A, B and temp.
     sysparts: HashMap<String, OCISysroot>,
+
+    /// List of directories that always needs to be skipped when activating a rootfs.
+    _skip_dirs: Vec<String>,
 }
 
 impl OCISysMgr {
     /// Manager constructor
     pub fn new(cfg: BootrConfig) -> Result<Self, Error> {
-        let mut mgr = OCISysMgr { cfg, sysparts: HashMap::default() };
+        let mut mgr = OCISysMgr {
+            cfg,
+            sysparts: HashMap::default(),
+            _skip_dirs: defaults::C_BOOTR_SYSDIRS
+                .iter()
+                .map(|&s| s.to_string())
+                .chain([defaults::C_BOOTR_ROOT.to_string(), "/lost+found".to_string()])
+                .collect(),
+        };
         mgr.init()?;
 
         Ok(mgr)
@@ -187,10 +197,8 @@ impl OCISysMgr {
     /// Physically erase existing rootfs
     fn erase_existing_rootfs(&self) -> Result<(), Error> {
         info!("Removing existing host rootfs");
-        let skip_dirs: Vec<&str> =
-            defaults::C_BOOTR_SYSDIRS.iter().chain([&defaults::C_BOOTR_ROOT, &"/lost+found"]).cloned().collect();
         for aft in fs::read_dir("/")?.into_iter().flatten() {
-            if !skip_dirs.contains(&aft.path().as_os_str().to_str().unwrap_or_default()) {
+            if !self._skip_dirs.contains(&aft.path().as_os_str().to_str().unwrap_or_default().to_string()) {
                 if aft.path().is_dir() {
                     debug!("Removing {:?}", aft.path());
                     fs::remove_dir_all(aft.path())?;
@@ -204,12 +212,10 @@ impl OCISysMgr {
     /// Re-symlink currently appointed rootfs from currently installed
     fn activate_current_rootfs(&self, pth: PathBuf) -> Result<(), Error> {
         info!("Activating current rootfs");
-        let skip_dirs: Vec<&str> =
-            defaults::C_BOOTR_SYSDIRS.iter().chain([&defaults::C_BOOTR_ROOT, &"/lost+found"]).cloned().collect();
         for aft in fs::read_dir(&pth)?.into_iter().flatten() {
             let aft_path = aft.path();
             let rfs_path = PathBuf::from("/").join(aft_path.strip_prefix(pth.to_str().unwrap()).unwrap());
-            if !skip_dirs.contains(&rfs_path.as_os_str().to_str().unwrap_or_default()) {
+            if !self._skip_dirs.contains(&rfs_path.as_os_str().to_str().unwrap_or_default().to_string()) {
                 debug!("Symlinking {:?}  -->  {:?}", aft_path, rfs_path);
                 symlinkat(aft_path.as_os_str().to_str().unwrap(), None, rfs_path.as_os_str().to_str().unwrap())?;
             }
